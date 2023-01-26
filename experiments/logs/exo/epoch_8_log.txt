@@ -1,0 +1,14 @@
+2023-01-24 15:59:33,621 : Train time 00h 00m 41s, Training started
+2023-01-24 15:59:34,532 : Train time 00h 00m 42s Epoch 8 Batch 1 Frame 8 Avg_dis:1.7553520053625107
+2023-01-24 15:59:34,752 : Train time 00h 00m 42s Epoch 8 Batch 2 Frame 16 Avg_dis:1.5992124378681183
+2023-01-24 15:59:34,965 : Train time 00h 00m 42s Epoch 8 Batch 3 Frame 24 Avg_dis:1.4823281913995743
+2023-01-24 15:59:35,203 : Train time 00h 00m 43s Epoch 8 Batch 4 Frame 32 Avg_dis:1.5000748485326767
+2023-01-24 15:59:35,419 : Train time 00h 00m 43s Epoch 8 Batch 5 Frame 40 Avg_dis:1.5106074810028076
+2023-01-24 15:59:35,680 : Train time 00h 00m 43s Epoch 8 Batch 6 Frame 48 Avg_dis:1.5943480134010315
+2023-01-24 15:59:35,949 : Train time 00h 00m 43s Epoch 8 Batch 7 Frame 56 Avg_dis:2.30811870098114
+2023-01-24 15:59:36,217 : Train time 00h 00m 44s Epoch 8 Batch 8 Frame 64 Avg_dis:2.903799921274185
+2023-01-24 15:59:36,420 : Train time 00h 00m 44s Epoch 8 Batch 9 Frame 72 Avg_dis:1.591627225279808
+2023-01-24 15:59:36,669 : Train time 00h 00m 44s Epoch 8 Batch 10 Frame 80 Avg_dis:1.5619038343429565
+2023-01-24 15:59:36,877 : Train time 00h 00m 44s Epoch 8 Batch 11 Frame 88 Avg_dis:1.7169129550457
+2023-01-24 15:59:37,117 : Train time 00h 00m 45s Epoch 8 Batch 12 Frame 96 Avg_dis:1.6141518950462341
+2023-01-24 15:59:37,389 : Train time 00h 00m 45s Epoch 8 Batch 13 Frame 104 Avg_dis:1.460447683930397
