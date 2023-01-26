@@ -4,42 +4,49 @@ import operator as op
 import functools
 import torch
 from torch.autograd import Variable, Function
-from lib.knn import knn_pytorch as knn_pytorch
+import knn_pytorch
+
 
 class KNearestNeighbor(Function):
-  """ Compute k nearest neighbors for each query point.
-  """
-  def __init__(self, k):
-    self.k = k
+    """ Compute k nearest neighbors for each query point.
+    """
+    #def __init__(self, k):
+    #    self.k = k
 
-  def forward(self, ref, query):
-    ref = ref.float().cuda()
-    query = query.float().cuda()
+    @staticmethod
+    def forward(self, ref, query):
+        """
+        Args:
+            ref: b x dim x n_ref
+            query: b x dim x n_query
+        """
+        ref = ref.contiguous().float().cuda()
+        query = query.contiguous().float().cuda()
+        #inds = torch.empty(query.shape[0], self.k, query.shape[2]).long().cuda()
+        inds = torch.empty(query.shape[0], 1, query.shape[2]).long().cuda()
 
-    inds = torch.empty(query.shape[0], self.k, query.shape[2]).long().cuda()
+        knn_pytorch.knn(ref, query, inds)
 
-    knn_pytorch.knn(ref, query, inds)
-
-    return inds
+        return inds
 
 
 class TestKNearestNeighbor(unittest.TestCase):
+    @staticmethod
+    def test_forward(self):
+        knn = KNearestNeighbor(2)
+        while(1):
+            D, N, M = 128, 100, 1000
+            ref = Variable(torch.rand(2, D, N))
+            query = Variable(torch.rand(2, D, M))
 
-  def test_forward(self):
-    knn = KNearestNeighbor(2)
-    while(1):
-        D, N, M = 128, 100, 1000
-        ref = Variable(torch.rand(2, D, N))
-        query = Variable(torch.rand(2, D, M))
-
-        inds = knn(ref, query)
-        for obj in gc.get_objects():
-            if torch.is_tensor(obj):
-                print(functools.reduce(op.mul, obj.size()) if len(obj.size()) > 0 else 0, type(obj), obj.size())
-        #ref = ref.cpu()
-        #query = query.cpu()
-        print(inds)
+            inds = knn(ref, query)
+            for obj in gc.get_objects():
+                if torch.is_tensor(obj):
+                    print(functools.reduce(op.mul, obj.size()) if len(obj.size()) > 0 else 0, type(obj), obj.size())
+            # ref = ref.cpu()
+            # query = query.cpu()
+            print(inds)
 
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

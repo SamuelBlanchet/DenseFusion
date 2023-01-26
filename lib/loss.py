@@ -36,15 +36,18 @@ def loss_calculation(pred_r, pred_t, pred_c, target, model_points, idx, points, 
     pred_c = pred_c.contiguous().view(bs * num_p)
 
     pred = torch.add(torch.bmm(model_points, base), points + pred_t)
-
-    if not refine:
-        if idx[0].item() in sym_list:
-            target = target[0].transpose(1, 0).contiguous().view(3, -1)
-            pred = pred.permute(2, 0, 1).contiguous().view(3, -1)
-            inds = knn(target.unsqueeze(0), pred.unsqueeze(0))
-            target = torch.index_select(target, 1, inds.view(-1).detach() - 1)
-            target = target.view(3, bs * num_p, num_point_mesh).permute(1, 2, 0).contiguous()
-            pred = pred.view(3, bs * num_p, num_point_mesh).permute(1, 2, 0).contiguous()
+    
+    linemod = 0
+    if linemod == 1:
+        if not refine:
+            if idx[0].item() in sym_list:
+                target = target[0].transpose(1, 0).contiguous().view(3, -1)
+                pred = pred.permute(2, 0, 1).contiguous().view(3, -1)
+                #inds = knn(target.unsqueeze(0), pred.unsqueeze(0))
+                inds = knn.forward(None, target.unsqueeze(0), pred.unsqueeze(0))
+                target = torch.index_select(target, 1, inds.view(-1).detach() - 1)
+                target = target.view(3, bs * num_p, num_point_mesh).permute(1, 2, 0).contiguous()
+                pred = pred.view(3, bs * num_p, num_point_mesh).permute(1, 2, 0).contiguous()
 
     dis = torch.mean(torch.norm((pred - target), dim=2), dim=1)
     loss = torch.mean((dis * pred_c - w * torch.log(pred_c)), dim=0)
@@ -77,7 +80,7 @@ class Loss(_Loss):
         super(Loss, self).__init__(True)
         self.num_pt_mesh = num_points_mesh
         self.sym_list = sym_list
-
-    def forward(self, pred_r, pred_t, pred_c, target, model_points, idx, points, w, refine):
-
-        return loss_calculation(pred_r, pred_t, pred_c, target, model_points, idx, points, w, refine, self.num_pt_mesh, self.sym_list)
+        
+    @staticmethod
+    def forward(pred_r, pred_t, pred_c, target, model_points, idx, points, w, refine, num_pt_mesh, sym_list):
+        return loss_calculation(pred_r, pred_t, pred_c, target, model_points, idx, points, w, refine, num_pt_mesh, sym_list)

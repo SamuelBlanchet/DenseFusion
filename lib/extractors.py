@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+torch.backends.cudnn.benchmark = False
+
 def load_weights_sequential(target, source_state):
     new_dict = OrderedDict()
     for (k1, v1), (k2, v2) in zip(target.state_dict().items(), source_state.items()):

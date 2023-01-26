@@ -64,6 +64,7 @@ def main():
         opt.outf = 'trained_models/linemod'
         opt.log_dir = 'experiments/logs/linemod'
         opt.repeat_epoch = 20
+        opt.refine = 0
     else:
         print('Unknown dataset')
         return
@@ -98,6 +99,7 @@ def main():
         test_dataset = PoseDataset_ycb('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
     elif opt.dataset == 'linemod':
         test_dataset = PoseDataset_linemod('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
+        
     testdataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=opt.workers)
     
     opt.sym_list = dataset.get_sym_list()
@@ -136,13 +138,23 @@ def main():
                                                                  Variable(target).cuda(), \
                                                                  Variable(model_points).cuda(), \
                                                                  Variable(idx).cuda()
+                #print(img.shape)		# torch.Size([1, 1])
                 pred_r, pred_t, pred_c, emb = estimator(img, points, choose, idx)
-                loss, dis, new_points, new_target = criterion(pred_r, pred_t, pred_c, target, model_points, idx, points, opt.w, opt.refine_start)
+                #print("pred_r = "+str(pred_r))
+                #print("pred_t = "+str(pred_t))
+                #print("pred_c = "+str(pred_c))
+                #print("target = "+str(target))
+                #print("model_points = "+str(model_points))
+                #print("idx = "+str(idx))
+                #print("points = "+str(points))
+                #print("opt.w = "+str(opt.w))
+                #print("opt.refine_start = "+str(opt.refine_start))
+                loss, dis, new_points, new_target = criterion(pred_r, pred_t, pred_c, target, model_points, idx, points, opt.w, opt.refine_start, opt.num_points, opt.sym_list)
                 
                 if opt.refine_start:
                     for ite in range(0, opt.iteration):
                         pred_r, pred_t = refiner(new_points, emb, idx)
-                        dis, new_points, new_target = criterion_refine(pred_r, pred_t, new_target, model_points, idx, new_points)
+                        dis, new_points, new_target = criterion_refine(pred_r, pred_t, new_target, model_points, idx, new_points, opt.num_points, opt.sym_list)
                         dis.backward()
                 else:
                     loss.backward()
@@ -181,12 +193,12 @@ def main():
                                                              Variable(model_points).cuda(), \
                                                              Variable(idx).cuda()
             pred_r, pred_t, pred_c, emb = estimator(img, points, choose, idx)
-            _, dis, new_points, new_target = criterion(pred_r, pred_t, pred_c, target, model_points, idx, points, opt.w, opt.refine_start)
+            _, dis, new_points, new_target = criterion(pred_r, pred_t, pred_c, target, model_points, idx, points, opt.w, opt.refine_start, opt.num_points, opt.sym_list)
 
             if opt.refine_start:
                 for ite in range(0, opt.iteration):
                     pred_r, pred_t = refiner(new_points, emb, idx)
-                    dis, new_points, new_target = criterion_refine(pred_r, pred_t, new_target, model_points, idx, new_points)
+                    dis, new_points, new_target = criterion_refine(pred_r, pred_t, new_target, model_points, idx, new_points, opt.w, opt.refine_start, opt.num_points, opt.sym_list)
 
             test_dis += dis.item()
             logger.info('Test time {0} Test Frame No.{1} dis:{2}'.format(time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - st_time)), test_count, dis))

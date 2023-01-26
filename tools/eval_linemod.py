@@ -22,6 +22,8 @@ from lib.loss_refiner import Loss_refine
 from lib.transformations import euler_matrix, quaternion_matrix, quaternion_from_matrix
 from lib.knn.__init__ import KNearestNeighbor
 
+torch.backends.cudnn.benchmark = False
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--dataset_root', type=str, default = '', help='dataset root dir')
 parser.add_argument('--model', type=str, default = '',  help='resume PoseNet model')
@@ -41,6 +43,7 @@ estimator = PoseNet(num_points = num_points, num_obj = num_objects)
 estimator.cuda()
 refiner = PoseRefineNet(num_points = num_points, num_obj = num_objects)
 refiner.cuda()
+print(opt.model)
 estimator.load_state_dict(torch.load(opt.model))
 refiner.load_state_dict(torch.load(opt.refine_model))
 estimator.eval()
@@ -79,6 +82,7 @@ for i, data in enumerate(testdataloader, 0):
                                                      Variable(idx).cuda()
 
     pred_r, pred_t, pred_c, emb = estimator(img, points, choose, idx)
+    print("\nShape of pred_t: "+str(pred_t.shape)+"\n")
     pred_r = pred_r / torch.norm(pred_r, dim=2).view(1, num_points, 1)
     pred_c = pred_c.view(bs, num_points)
     how_max, which_max = torch.max(pred_c, 1)
@@ -101,6 +105,7 @@ for i, data in enumerate(testdataloader, 0):
         my_r_2 = pred_r.view(-1).cpu().data.numpy()
         my_t_2 = pred_t.view(-1).cpu().data.numpy()
         my_mat_2 = quaternion_matrix(my_r_2)
+        print("\nShape of my_t_2: "+str(my_t_2.shape)+"\n")
         my_mat_2[0:3, 3] = my_t_2
 
         my_mat_final = np.dot(my_mat, my_mat_2)
@@ -123,7 +128,8 @@ for i, data in enumerate(testdataloader, 0):
     if idx[0].item() in sym_list:
         pred = torch.from_numpy(pred.astype(np.float32)).cuda().transpose(1, 0).contiguous()
         target = torch.from_numpy(target.astype(np.float32)).cuda().transpose(1, 0).contiguous()
-        inds = knn(target.unsqueeze(0), pred.unsqueeze(0))
+        #inds = knn(target.unsqueeze(0), pred.unsqueeze(0))
+        inds = knn.apply(target.unsqueeze(0), pred.unsqueeze(0))
         target = torch.index_select(target, 1, inds.view(-1) - 1)
         dis = torch.mean(torch.norm((pred.transpose(1, 0) - target.transpose(1, 0)), dim=1), dim=0).item()
     else:

@@ -44,7 +44,7 @@ def get_extensions():
 
     ext_modules = [
         extension(
-            "knn_pytorch.knn_pytorch",
+            "knn_pytorch",
             sources,
             include_dirs=include_dirs,
             define_macros=define_macros,
