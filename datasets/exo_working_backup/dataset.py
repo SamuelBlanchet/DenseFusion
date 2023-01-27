@@ -19,7 +19,6 @@ import scipy.misc
 import scipy.io as scio
 import yaml
 import cv2
-from yaml.loader import SafeLoader
 
 
 class PoseDataset(data.Dataset):
@@ -65,7 +64,7 @@ class PoseDataset(data.Dataset):
                 self.list_rank.append(int(input_line))
 
             meta_file = open('{0}/data/{1}/gt.yml'.format(self.root, '%02d' % item), 'r')
-            self.meta[item] = yaml.load(meta_file, Loader=SafeLoader)
+            self.meta[item] = yaml.load(meta_file)
             self.pt[item] = ply_vtx('{0}/models/obj_{1}.ply'.format(self.root, '%02d' % item))
             
             print("Object {0} buffer loaded".format(item))

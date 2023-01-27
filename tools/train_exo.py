@@ -20,7 +20,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from torch.autograd import Variable
-from datasets.ycb.dataset import PoseDataset as PoseDataset_ycb
+#from datasets.ycb.dataset import PoseDataset as PoseDataset_ycb
 from datasets.linemod.dataset import PoseDataset as PoseDataset_linemod
 from datasets.exo.dataset import PoseDataset as PoseDataset_exo
 from lib.network import PoseNet, PoseRefineNet
@@ -32,8 +32,8 @@ from lib.utils import setup_logger
 #torch.multiprocessing.set_sharing_strategy('file_system')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--dataset', type=str, default = 'exo', help='exo or ycb or linemod')
-parser.add_argument('--dataset_root', type=str, default = 'Exo_preprocessed', help='dataset root dir (''Exo_preprocessed'' or ''YCB_Video_Dataset'' or ''Linemod_preprocessed'')')
+parser.add_argument('--dataset', type=str, default = 'exo', help='exo or linemod')
+parser.add_argument('--dataset_root', type=str, default = 'Exo_preprocessed', help='dataset root dir (''Exo_preprocessed'' or ''Linemod_preprocessed'')')
 parser.add_argument('--batch_size', type=int, default = 8, help='batch size')
 parser.add_argument('--workers', type=int, default = 10, help='number of data loading workers')
 parser.add_argument('--lr', default=0.0001, help='learning rate')
@@ -56,13 +56,13 @@ def main():
     random.seed(opt.manualSeed)
     torch.manual_seed(opt.manualSeed)
 
-    if opt.dataset == 'ycb':
-        opt.num_objects = 21 #number of object classes in the dataset
-        opt.num_points = 1000 #number of points on the input pointcloud
-        opt.outf = 'trained_models/ycb' #folder to save trained models
-        opt.log_dir = 'experiments/logs/ycb' #folder to save logs
-        opt.repeat_epoch = 1 #number of repeat times for one epoch training
-    elif opt.dataset == 'linemod':
+    #if opt.dataset == 'ycb':
+    #    opt.num_objects = 21 #number of object classes in the dataset
+    #    opt.num_points = 1000 #number of points on the input pointcloud
+    #    opt.outf = 'trained_models/ycb' #folder to save trained models
+    #    opt.log_dir = 'experiments/logs/ycb' #folder to save logs
+    #    opt.repeat_epoch = 1 #number of repeat times for one epoch training
+    if opt.dataset == 'linemod':
         opt.num_objects = 13
         opt.num_points = 500
         opt.outf = 'trained_models/linemod'
@@ -102,18 +102,18 @@ def main():
         opt.decay_start = False
         optimizer = optim.Adam(estimator.parameters(), lr=opt.lr)
 
-    if opt.dataset == 'ycb':
-        dataset = PoseDataset_ycb('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
-    elif opt.dataset == 'linemod':
+    #if opt.dataset == 'ycb':
+    #    dataset = PoseDataset_ycb('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
+    if opt.dataset == 'linemod':
         dataset = PoseDataset_linemod('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
     elif opt.dataset == 'exo':
         dataset = PoseDataset_exo('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
         
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, num_workers=opt.workers)
     
-    if opt.dataset == 'ycb':
-        test_dataset = PoseDataset_ycb('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
-    elif opt.dataset == 'linemod':
+    #if opt.dataset == 'ycb':
+    #    test_dataset = PoseDataset_ycb('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
+    if opt.dataset == 'linemod':
         test_dataset = PoseDataset_linemod('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
     elif opt.dataset == 'exo':
         test_dataset = PoseDataset_exo('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
@@ -243,16 +243,16 @@ def main():
             opt.batch_size = int(opt.batch_size / opt.iteration)
             optimizer = optim.Adam(refiner.parameters(), lr=opt.lr)
 
-            if opt.dataset == 'ycb':
-                dataset = PoseDataset_ycb('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
-            elif opt.dataset == 'linemod':
+            #if opt.dataset == 'ycb':
+            #    dataset = PoseDataset_ycb('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
+            if opt.dataset == 'linemod':
                 dataset = PoseDataset_linemod('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
             elif opt.dataset == 'exo':
                 dataset = PoseDataset_exo('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
             dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=opt.workers)
-            if opt.dataset == 'ycb':
-                test_dataset = PoseDataset_ycb('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
-            elif opt.dataset == 'linemod':
+            #if opt.dataset == 'ycb':
+            #    test_dataset = PoseDataset_ycb('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
+            if opt.dataset == 'linemod':
                 test_dataset = PoseDataset_linemod('test', opt.num_points, False, opt.dataset_root, 0.0, opt.refine_start)
             elif opt.dataset == 'exo':
                 dataset = PoseDataset_exo('train', opt.num_points, True, opt.dataset_root, opt.noise_trans, opt.refine_start)
