@@ -1,5 +1,8 @@
 datasets/linemod/Linemod_preprocessed
 datasets/ycb/YCB_Video_Dataset
+datasets/exo/Exo_preprocessed
+datasets/part_259/259_preprocessed
+datasets/reservoir_transparent_a/Reservoir_preprocessed
 *.zip
 *__pycache__
 experiments/logs/*
