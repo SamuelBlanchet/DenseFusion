@@ -32,94 +32,103 @@ class PoseDataset(data.Dataset):
         self.list_label = []
         self.list_obj = []
         self.list_rank = []
+        self.list_mesh = []
         self.meta = {}
         self.pt = {}
         self.root = root
         self.noise_trans = noise_trans
         self.refine = refine
 
+        models_info_file = open('{0}/models/models_info.yml'.format(self.root), 'r')
+        self.infos = yaml.load(models_info_file, Loader=SafeLoader)
+
         item_count = 0
         for item in self.objlist:
-            if self.mode == 'train':
+            self.list_mesh.append('{0}/models/obj_{1}.ply'.format(self.root, '%02d' % item))
+            if self.mode == 'train':     # Test because number of training scenes is loooower then testing in Linemod
                 input_file = open('{0}/data/{1}/train.txt'.format(self.root, '%02d' % item))
             else:
                 input_file = open('{0}/data/{1}/test.txt'.format(self.root, '%02d' % item))
             while 1:
                 item_count += 1
                 input_line = input_file.readline()
-                #if self.mode == 'test' and item_count % 10 != 0:
-                #    continue
+                if self.mode == 'test' and item_count % 10 != 0:
+                    continue
                 if not input_line:
                     break
                 if input_line[-1:] == '\n':
                     input_line = input_line[:-1]
                 self.list_rgb.append('{0}/data/{1}/rgb/{2}.png'.format(self.root, '%02d' % item, input_line))
+                #self.list_depth.append('{0}/data/{1}/depth/{2}.ppm'.format(self.root, '%02d' % item, input_line))
                 self.list_depth.append('{0}/data/{1}/depth/{2}.png'.format(self.root, '%02d' % item, input_line))
                 if self.mode == 'eval':
                     self.list_label.append('{0}/segnet_results/{1}_label/{2}.png'.format(self.root, '%02d' % item, input_line))
-                    #self.list_label.append('{0}/segnet_results/{1}_label/{2}_label.png'.format(self.root, '%02d' % item, input_line))
                 else:
                     self.list_label.append('{0}/data/{1}/mask/{2}.png'.format(self.root, '%02d' % item, input_line))
                 
                 self.list_obj.append(item)
                 self.list_rank.append(int(input_line))
-
+            
             meta_file = open('{0}/data/{1}/gt.yml'.format(self.root, '%02d' % item), 'r')
             self.meta[item] = yaml.load(meta_file, Loader=SafeLoader)
             self.pt[item] = ply_vtx('{0}/models/obj_{1}.ply'.format(self.root, '%02d' % item))
-            
-            print("Object {0} buffer loaded".format(item))
 
+        print("Objects buffer loaded")
         self.length = len(self.list_rgb)
 
-        self.cam_cx = 209.55
-        self.cam_cy = 152.908
-        self.cam_fx = 181.476
-        self.cam_fy = 181.476
+        self.cam_cx = 320
+        self.cam_cy = 240
+        self.cam_fx = 569.6790
+        self.cam_fy = 554.2574
 
         self.xmap = np.array([[j for i in range(640)] for j in range(480)])
         self.ymap = np.array([[i for i in range(640)] for j in range(480)])
         
         self.num = num
         self.add_noise = add_noise
-        #self.add_noise = False
         self.trancolor = transforms.ColorJitter(0.2, 0.2, 0.2, 0.05)
         self.norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         self.border_list = [-1, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440, 480, 520, 560, 600, 640, 680]
         self.num_pt_mesh_large = 500
         self.num_pt_mesh_small = 500
-        self.symmetry_obj_idx = None
-
+        self.symmetry_obj_idx = []
+        
     def __getitem__(self, index):
         img = Image.open(self.list_rgb[index])
         ori_img = np.array(img)
-        depth = np.array(Image.open(self.list_depth[index]))
+        # Process ppm file to get depth information
+        #with open(self.list_depth[index], "r") as ppm_file:
+        #    format = ppm_file.readline().split()
+        #    size = ppm_file.readline().split()
+        #    width = size[0]
+        #    height = size[1]
+        #    max_val = int(ppm_file.readline().split()[0])
+            # Read the PPM pixel data
+        #    pixels = []
+        #    for line in ppm_file:
+        #        # Split each line into integers
+        #        row = [int(x) for x in line.split()]
+        #        pixels.append(row)
+        # Convert the list of rows to a 2D numpy array
+        #depth = np.array(pixels)
+        #depth_reshaped = np.reshape(depth, (480, 640, 3))
+        #depth = np.mean(depth_reshaped, axis=2)
+        #depth = depth.astype(np.int32)
+
+        depth_img = Image.open(self.list_depth[index])
+        depth = np.array(depth_img)
         label = np.array(Image.open(self.list_label[index]))
         obj = self.list_obj[index]
         rank = self.list_rank[index]        
 
-        #if obj == 2:
-        #    for i in range(0, len(self.meta[obj][rank])):
-        #        if self.meta[obj][rank][i]['obj_id'] == 2:
-        #            meta = self.meta[obj][rank][i]
-        #            break
-        #else:
         meta = self.meta[obj][rank][0]
+        mask_depth = ma.getmaskarray(ma.masked_not_equal(depth[:, :], 0))
 
-        #print("Shape depth map: "+str(depth[:, :, :3].shape))
-        #np.savetxt('data_1.txt', label[:, :, 1], delimiter=',')
-        #np.savetxt('data_2.txt', label[:, :, 2], delimiter=',')
-        
-        mask_depth = ma.getmaskarray(ma.masked_not_equal(depth[:, :, 1], 0))
-        #mask_depth = ma.getmaskarray(ma.masked_not_equal(depth[:, :, :3], np.array([0, 0, 0])))
-        
         if self.mode == 'eval':
             mask_label = ma.getmaskarray(ma.masked_equal(label, np.array(255)))[:, :, 0]
         else:
             mask_label = ma.getmaskarray(ma.masked_equal(label, np.array([0, 255, 255, 255])))[:, :, 0]
-            #mask_label = ma.getmaskarray(ma.masked_equal(label[:, :, :3], np.array([255, 255, 255])))[:, :, 0]
-        #print("Shape label mask: "+str(mask_label.shape))
-        #print("Shape depth mask: "+str(mask_depth.shape))
+
         mask = mask_label * mask_depth
 
         if self.add_noise:
@@ -129,10 +138,10 @@ class PoseDataset(data.Dataset):
         img = np.transpose(img, (2, 0, 1))
         img_masked = img
 
-        if self.mode == 'eval':
-            rmin, rmax, cmin, cmax = get_bbox(mask_to_bbox(mask_label))
-        else:
-            rmin, rmax, cmin, cmax = get_bbox(meta['obj_bb'])
+        #if self.mode == 'eval':
+        #    rmin, rmax, cmin, cmax = get_bbox(mask_to_bbox(mask_label))
+        #else:
+        rmin, rmax, cmin, cmax = get_bbox(meta['obj_bb'])
 
         img_masked = img_masked[:, rmin:rmax, cmin:cmax]
         #p_img = np.transpose(img_masked, (1, 2, 0))
@@ -185,9 +194,7 @@ class PoseDataset(data.Dataset):
         #    fw.write('{0} {1} {2}\n'.format(it[0], it[1], it[2]))
         #fw.close()
 
-
         target = np.dot(model_points, target_r.T)
-        
         if self.add_noise:
             target = np.add(target, target_t / 1000.0 + add_t)
             out_t = target_t / 1000.0 + add_t
@@ -218,22 +225,37 @@ class PoseDataset(data.Dataset):
             return self.num_pt_mesh_large
         else:
             return self.num_pt_mesh_small
+        
+    def get_img(self):
+        img_path = self.list_rgb
+        return img_path
+    
+    def get_mask(self):
+        mask_path = self.list_label
+        return mask_path
+    
+    def get_ssp_label(self):
+        label_path = "Test_SSP-LabelPath"
+        return label_path
+    
+    def get_diameter(self, index):
+        print("Index: "+str(index))
+        diameter = "Test_DiameterPath"
+        return diameter
+    
+    def get_mesh(self):
+        mesh_path = self.list_mesh
+        return mesh_path
 
 
-
-#border_list = [-1, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440, 480, 520, 560, 600, 640, 680, 720, 760, 800, 840, 880, 920, 960, 1000, 1040, 1080, 1120, 1160, 1200, 1240, 1280,1320]
-#img_width = 720
-#img_length = 1280
 border_list = [-1, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440, 480, 520, 560, 600, 640, 680]
 img_width = 480
 img_length = 640
-
 
 def mask_to_bbox(mask):
     mask = mask.astype(np.uint8)
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     #_, contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
 
     x = 0
     y = 0
@@ -247,7 +269,6 @@ def mask_to_bbox(mask):
             w = tmp_w
             h = tmp_h
     return [x, y, w, h]
-
 
 def get_bbox(bbox):
     bbx = [bbox[1], bbox[1] + bbox[3], bbox[0], bbox[0] + bbox[2]]

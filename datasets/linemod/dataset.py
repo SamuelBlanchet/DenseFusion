@@ -19,6 +19,7 @@ import scipy.misc
 import scipy.io as scio
 import yaml
 import cv2
+from yaml.loader import SafeLoader
 
 
 class PoseDataset(data.Dataset):
@@ -31,14 +32,19 @@ class PoseDataset(data.Dataset):
         self.list_label = []
         self.list_obj = []
         self.list_rank = []
+        self.list_mesh = []
         self.meta = {}
         self.pt = {}
         self.root = root
         self.noise_trans = noise_trans
         self.refine = refine
 
+        models_info_file = open('{0}/models/models_info.yml'.format(self.root), 'r')
+        self.infos = yaml.load(models_info_file, Loader=SafeLoader)
+
         item_count = 0
         for item in self.objlist:
+            self.list_mesh.append('{0}/models/obj_{1}.ply'.format(self.root, '%02d' % item))
             if self.mode == 'train':
                 input_file = open('{0}/data/{1}/train.txt'.format(self.root, '%02d' % item))
             else:
@@ -46,8 +52,8 @@ class PoseDataset(data.Dataset):
             while 1:
                 item_count += 1
                 input_line = input_file.readline()
-                if self.mode == 'test' and item_count % 10 != 0:
-                    continue
+                #if self.mode == 'test' and item_count % 10 != 0:
+                #    continue
                 if not input_line:
                     break
                 if input_line[-1:] == '\n':
@@ -63,11 +69,10 @@ class PoseDataset(data.Dataset):
                 self.list_rank.append(int(input_line))
 
             meta_file = open('{0}/data/{1}/gt.yml'.format(self.root, '%02d' % item), 'r')
-            self.meta[item] = yaml.load(meta_file)
+            self.meta[item] = yaml.load(meta_file, Loader=SafeLoader)
             self.pt[item] = ply_vtx('{0}/models/obj_{1}.ply'.format(self.root, '%02d' % item))
             
-            print("Object {0} buffer loaded".format(item))
-
+        print("Objects buffer loaded")
         self.length = len(self.list_rgb)
 
         self.cam_cx = 325.26110
@@ -90,7 +95,8 @@ class PoseDataset(data.Dataset):
     def __getitem__(self, index):
         img = Image.open(self.list_rgb[index])
         ori_img = np.array(img)
-        depth = np.array(Image.open(self.list_depth[index]))
+        depth_img = Image.open(self.list_depth[index])
+        depth = np.array(depth_img)
         label = np.array(Image.open(self.list_label[index]))
         obj = self.list_obj[index]
         rank = self.list_rank[index]        
@@ -205,6 +211,27 @@ class PoseDataset(data.Dataset):
             return self.num_pt_mesh_large
         else:
             return self.num_pt_mesh_small
+        
+    def get_img(self):
+        img_path = self.list_rgb
+        return img_path
+    
+    def get_mask(self):
+        mask_path = self.list_label
+        return mask_path
+    
+    def get_ssp_label(self):
+        label_path = "Test_SSP-LabelPath"
+        return label_path
+    
+    def get_diameter(self, index):
+        print("Index: "+str(index))
+        diameter = "Test_DiameterPath"
+        return diameter
+    
+    def get_mesh(self):
+        mesh_path = self.list_mesh
+        return mesh_path
 
 
 
@@ -218,7 +245,6 @@ def mask_to_bbox(mask):
     contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     #_, contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-
     x = 0
     y = 0
     w = 0
@@ -231,7 +257,6 @@ def mask_to_bbox(mask):
             w = tmp_w
             h = tmp_h
     return [x, y, w, h]
-
 
 def get_bbox(bbox):
     bbx = [bbox[1], bbox[1] + bbox[3], bbox[0], bbox[0] + bbox[2]]
